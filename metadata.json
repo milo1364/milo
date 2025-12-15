@@ -1,0 +1,7 @@
+{
+  "name": "Persian Text Alchemy",
+  "description": "An AI-powered tool for transforming and enhancing Persian text using Google Gemini.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

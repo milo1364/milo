@@ -1,0 +1,81 @@
+
+import React from 'react';
+import { X, Monitor, Smartphone, Globe, Info } from 'lucide-react';
+
+interface InstallGuideModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export const InstallGuideModal: React.FC<InstallGuideModalProps> = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-alchemy-surface border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        
+        <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-alchemy-dark/50">
+          <div className="flex items-center gap-2">
+            <Info className="text-alchemy-accent" size={24} />
+            <h2 className="text-lg font-bold text-white">راهنمای نصب برنامه</h2>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="p-6 overflow-y-auto space-y-6 dir-rtl" dir="rtl">
+          
+          {/* Windows Section */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-alchemy-primary">
+              <Monitor size={24} />
+              <h3 className="font-bold text-lg">نسخه ویندوز (Windows)</h3>
+            </div>
+            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 space-y-2 text-sm text-slate-300 leading-relaxed">
+              <p>این برنامه یک وب‌اپلیکیشن پیشرفته (PWA) است. برای نصب مشابه فایل exe:</p>
+              <ol className="list-decimal list-inside space-y-2 marker:text-alchemy-primary pr-2">
+                <li>برنامه را با مرورگر <b>Chrome</b> یا <b>Edge</b> باز کنید.</li>
+                <li>در نوار آدرس (بالای صفحه)، روی آیکون <span className="inline-flex items-center justify-center border border-slate-500 rounded px-1 mx-1 h-5 text-[10px]">نصب</span> یا <span className="inline-flex items-center justify-center border border-slate-500 rounded px-1 mx-1 h-5 w-5 text-[12px]">+</span> کلیک کنید.</li>
+                <li>اگر آیکون را نمی‌بینید، روی سه نقطه منوی مرورگر کلیک کرده و گزینه <b>Install Persian Text Alchemy</b> را انتخاب کنید.</li>
+              </ol>
+            </div>
+          </div>
+
+          {/* Android Section */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-green-400">
+              <Smartphone size={24} />
+              <h3 className="font-bold text-lg">نسخه اندروید (Android)</h3>
+            </div>
+            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 space-y-2 text-sm text-slate-300 leading-relaxed">
+              <p>برای نصب مشابه فایل APK و اضافه شدن به لیست برنامه‌ها:</p>
+              <ol className="list-decimal list-inside space-y-2 marker:text-green-500 pr-2">
+                <li>برنامه را در مرورگر <b>Chrome</b> باز کنید.</li>
+                <li>روی دکمه <b>"نصب اپلیکیشن"</b> در بالای همین صفحه کلیک کنید.</li>
+                <li>اگر دکمه کار نکرد، روی سه نقطه (منو) مرورگر کلیک کنید.</li>
+                <li>گزینه <b>Install App</b> یا <b>Add to Home Screen</b> را انتخاب کنید.</li>
+              </ol>
+            </div>
+          </div>
+
+          {/* iOS Section */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-slate-200">
+              <Globe size={24} />
+              <h3 className="font-bold text-lg">نسخه iOS (آیفون)</h3>
+            </div>
+            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 space-y-2 text-sm text-slate-300 leading-relaxed">
+              <ol className="list-decimal list-inside space-y-2 marker:text-white pr-2">
+                <li>در مرورگر <b>Safari</b>، دکمه <b>Share</b> (مربع با فلش بالا) را بزنید.</li>
+                <li>در منوی باز شده به پایین اسکرول کنید و گزینه <b>Add to Home Screen</b> را انتخاب کنید.</li>
+                <li>در بالا سمت راست، دکمه <b>Add</b> را بزنید.</li>
+              </ol>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+};
