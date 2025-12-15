@@ -17,8 +17,14 @@ export const transformText = async (
   modelId: string = 'gemini'
 ): Promise<string> => {
   try {
+    // Check for API Key explicitly before initializing to provide a better error message
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      return "خطا: کلید API یافت نشد (API_KEY missing).\n\nاگر برنامه را روی سیستم خود اجرا می‌کنید، لطفاً فایل .env را بررسی کنید.\nاگر در محیط آنلاین هستید، لطفاً صفحه را رفرش کرده و مجدداً کلید را انتخاب کنید.";
+    }
+
     // Initialize inside the function to ensure process.env.API_KEY is available
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey });
 
     // Find the selected model config to get the actual modelName
     const selectedModelConfig = AI_MODELS.find(m => m.id === modelId) || AI_MODELS[0];
@@ -28,7 +34,7 @@ export const transformText = async (
 
     // Handle Custom Mode specifically where the prompt comes from user input at runtime
     if (spell.id === AlchemyMode.Custom) {
-      if (!customPrompt) return "Please provide a custom prompt.";
+      if (!customPrompt) return "لطفاً دستور خود را وارد کنید.";
       finalPrompt = finalPrompt.replace('{{prompt}}', customPrompt);
     }
 
@@ -64,18 +70,22 @@ export const transformText = async (
       config: config
     });
 
-    return response.text || "No output generated.";
+    return response.text || "خروجی تولید نشد.";
 
   } catch (error) {
     console.error("Gemini API Error:", error);
     if (error instanceof Error) {
+        // Handle specific missing key error from SDK for user friendliness
+        if (error.message.includes("API Key") || error.message.includes("API_KEY")) {
+             return "خطا: کلید API معتبر نیست یا تنظیم نشده است.";
+        }
         return `Error: ${error.message}`;
     }
     // Handle JSON error objects that might be returned
     try {
         return `Error: ${JSON.stringify(error)}`;
     } catch {
-        return "An unknown error occurred while processing the text.";
+        return "خطای ناشناخته‌ای رخ داد.";
     }
   }
 };

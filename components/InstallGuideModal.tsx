@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { X, Monitor, Smartphone, Globe, Info } from 'lucide-react';
+import { X, Monitor, Smartphone, Globe, Info, Code } from 'lucide-react';
 
 interface InstallGuideModalProps {
   isOpen: boolean;
@@ -70,6 +70,22 @@ export const InstallGuideModal: React.FC<InstallGuideModalProps> = ({ isOpen, on
                 <li>در مرورگر <b>Safari</b>، دکمه <b>Share</b> (مربع با فلش بالا) را بزنید.</li>
                 <li>در منوی باز شده به پایین اسکرول کنید و گزینه <b>Add to Home Screen</b> را انتخاب کنید.</li>
                 <li>در بالا سمت راست، دکمه <b>Add</b> را بزنید.</li>
+              </ol>
+            </div>
+          </div>
+
+          {/* Developers Section */}
+          <div className="space-y-3 pt-4 border-t border-slate-700/50">
+            <div className="flex items-center gap-2 text-slate-400">
+              <Code size={24} />
+              <h3 className="font-bold text-lg">نکته برای توسعه‌دهندگان</h3>
+            </div>
+            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 space-y-2 text-sm text-slate-300 leading-relaxed">
+              <p>اگر برنامه را به صورت لوکال (Localhost) اجرا می‌کنید و با خطای <b>API Key</b> مواجه می‌شوید:</p>
+              <ol className="list-decimal list-inside space-y-2 marker:text-slate-500 pr-2">
+                <li>یک فایل به نام <code>.env</code> در ریشه پروژه بسازید.</li>
+                <li>مقدار <code>API_KEY=YOUR_GEMINI_API_KEY</code> را در آن قرار دهید.</li>
+                <li>برنامه را مجدداً راه‌اندازی کنید.</li>
               </ol>
             </div>
           </div>

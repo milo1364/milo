@@ -185,7 +185,7 @@ function App() {
         console.error("Error selecting API key", e);
       }
     } else {
-      alert("قابلیت انتخاب کلید API در این محیط در دسترس نیست.");
+      alert("قابلیت انتخاب کلید API در این محیط در دسترس نیست. لطفاً متغیر محیطی API_KEY را به صورت دستی تنظیم کنید.");
     }
   };
 
@@ -206,10 +206,11 @@ function App() {
         const result = await transformText(inputText, selectedSpell, customPrompt, selectedModelId);
         
         // Check for API Key errors
-        if (result.includes("API key not valid") || result.includes("API_KEY_INVALID") || result.includes("Requested entity was not found")) {
+        if (result.includes("API key not valid") || result.includes("API_KEY_INVALID") || result.includes("Requested entity was not found") || result.includes("کلید API یافت نشد") || result.includes("API_KEY missing")) {
            setHasApiKey(false);
-           setOutputText("خطا: کلید API معتبر نیست یا یافت نشد. لطفاً مجدداً کلید را انتخاب کنید.");
-           // Automatically trigger selection if possible, or let the user click the button
+           setOutputText(result); // Show the specific error in output box
+           
+           // Automatically trigger selection if possible in aistudio
            if (window.aistudio) {
               handleSelectApiKey();
            }
@@ -217,7 +218,7 @@ function App() {
            setOutputText(result);
            
            // Add to history if successful
-           if (!result.startsWith("Error:")) {
+           if (!result.startsWith("Error:") && !result.startsWith("خطا:")) {
              const newHistoryItem: TransformationResult = {
                id: crypto.randomUUID(),
                original: inputText,
@@ -427,7 +428,7 @@ function App() {
     });
   };
 
-  // API Key Missing Overlay
+  // API Key Missing Overlay (Only for AIStudio environment)
   if (!hasApiKey && window.aistudio) {
     return (
       <div className="min-h-screen font-sans bg-alchemy-dark flex items-center justify-center p-4">
