@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'alchemy-v1';
+const CACHE_NAME = 'alchemy-v1.1.0';
 const urlsToCache = [
   '/',
   '/index.html',

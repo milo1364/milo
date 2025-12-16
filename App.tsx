@@ -24,14 +24,14 @@ import {
   Download,
   HelpCircle
 } from 'lucide-react';
-import { DEFAULT_SPELLS, ICON_MAP } from './constants';
+import { DEFAULT_SPELLS, ICON_MAP, APP_VERSION } from './constants';
 import { AlchemyMode, Spell, TransformationResult, AI_MODELS } from './types';
 import { transformText } from './services/geminiService';
 import { SpellButton } from './components/SpellButton';
 import { SpellModal } from './components/SpellModal';
 import { HistoryModal } from './components/HistoryModal';
 import { InstallGuideModal } from './components/InstallGuideModal';
-import { ApiKeyModal } from './components/ApiKeyModal'; // New Import
+import { ApiKeyModal } from './components/ApiKeyModal';
 
 function App() {
   const [inputText, setInputText] = useState('');
@@ -88,7 +88,7 @@ function App() {
   const [editingSpell, setEditingSpell] = useState<Spell | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
-  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false); // New Modal State
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
 
   // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -523,7 +523,7 @@ function App() {
             <button 
               onClick={() => setIsGuideOpen(true)}
               className="text-slate-400 hover:text-white transition-colors p-2 rounded-full hover:bg-slate-800"
-              title="راهنمای نصب و ربات"
+              title="راهنما و درباره"
             >
               <HelpCircle size={20} />
             </button>
@@ -810,6 +810,15 @@ function App() {
           </section>
         )}
       </main>
+
+      {/* Footer Version */}
+      <div 
+        onClick={() => window.location.reload()}
+        className="fixed bottom-2 left-3 text-[10px] font-mono text-slate-600 opacity-50 hover:opacity-100 hover:text-alchemy-primary cursor-pointer transition-all z-40 select-none"
+        title="نسخه برنامه (برای بروزرسانی کلیک کنید)"
+      >
+        v{APP_VERSION}
+      </div>
 
       {/* Modals */}
       <SpellModal 

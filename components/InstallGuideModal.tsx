@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { X, Monitor, Smartphone, Globe, Info, Code, MessageCircle } from 'lucide-react';
+import { X, Monitor, Smartphone, Globe, Info, Code, MessageCircle, RefreshCw } from 'lucide-react';
+import { APP_VERSION } from '../constants';
 
 interface InstallGuideModalProps {
   isOpen: boolean;
@@ -10,6 +11,17 @@ interface InstallGuideModalProps {
 export const InstallGuideModal: React.FC<InstallGuideModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
+  const handleUpdate = () => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for(let registration of registrations) {
+          registration.update();
+        }
+      });
+    }
+    window.location.reload();
+  };
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-alchemy-surface border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -17,7 +29,7 @@ export const InstallGuideModal: React.FC<InstallGuideModalProps> = ({ isOpen, on
         <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-alchemy-dark/50">
           <div className="flex items-center gap-2">
             <Info className="text-alchemy-accent" size={24} />
-            <h2 className="text-lg font-bold text-white">راهنمای نصب و ربات</h2>
+            <h2 className="text-lg font-bold text-white">راهنما و درباره</h2>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
             <X size={20} />
@@ -26,6 +38,22 @@ export const InstallGuideModal: React.FC<InstallGuideModalProps> = ({ isOpen, on
 
         <div className="p-6 overflow-y-auto space-y-6 dir-rtl" dir="rtl">
           
+          {/* Version & Update Section */}
+          <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700 flex items-center justify-between shadow-sm">
+             <div className="flex flex-col gap-1">
+               <span className="text-slate-300 font-bold text-sm">نسخه فعلی برنامه</span>
+               <span className="text-alchemy-primary font-mono text-xs tracking-wider">v{APP_VERSION}</span>
+             </div>
+             <button
+               onClick={handleUpdate}
+               className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded-lg transition-colors border border-slate-600"
+               title="بررسی و دریافت آخرین نسخه"
+             >
+               <RefreshCw size={14} />
+               بروزرسانی
+             </button>
+          </div>
+
           {/* Bale Bot Section */}
           <div className="space-y-3 bg-indigo-900/20 p-4 rounded-xl border border-indigo-500/30">
             <div className="flex items-center gap-2 text-indigo-400">

@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { AlchemyMode, Spell } from './types';
 
+export const APP_VERSION = '1.1.0';
+
 export const ICON_MAP: Record<string, any> = {
   FileText,
   Languages,
