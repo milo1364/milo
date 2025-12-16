@@ -22,7 +22,7 @@ import {
   Bot,
   ChevronDown,
   Download,
-  HelpCircle // Added HelpCircle icon
+  HelpCircle
 } from 'lucide-react';
 import { DEFAULT_SPELLS, ICON_MAP } from './constants';
 import { AlchemyMode, Spell, TransformationResult, AI_MODELS } from './types';
@@ -30,7 +30,8 @@ import { transformText } from './services/geminiService';
 import { SpellButton } from './components/SpellButton';
 import { SpellModal } from './components/SpellModal';
 import { HistoryModal } from './components/HistoryModal';
-import { InstallGuideModal } from './components/InstallGuideModal'; // Import new modal
+import { InstallGuideModal } from './components/InstallGuideModal';
+import { ApiKeyModal } from './components/ApiKeyModal'; // New Import
 
 function App() {
   const [inputText, setInputText] = useState('');
@@ -61,6 +62,11 @@ function App() {
     return [];
   });
 
+  // User API Key State
+  const [userApiKey, setUserApiKey] = useState<string>(() => {
+    return localStorage.getItem('user_gemini_api_key') || '';
+  });
+
   const [selectedSpellId, setSelectedSpellId] = useState<string>(AlchemyMode.SUMMARIZE);
   const [customPrompt, setCustomPrompt] = useState('');
   const [showResult, setShowResult] = useState(false);
@@ -77,26 +83,26 @@ function App() {
   const [isCaseSensitive, setIsCaseSensitive] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   
-  // Modal State
+  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSpell, setEditingSpell] = useState<Spell | null>(null);
-
-  // History Modal State
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  
-  // Install Guide Modal State
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false); // New Modal State
 
   // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
 
-  // API Key State
-  const [hasApiKey, setHasApiKey] = useState(true); // Default to true to avoid flashing, check on mount
+  // API Key State (Environment / AI Studio)
+  const [hasEnvKey, setHasEnvKey] = useState(true);
 
   // Share Menu State
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
   const shareMenuRef = useRef<HTMLDivElement>(null);
+
+  // Mini App Mode State (for embedding in Bale/Telegram)
+  const [isMiniApp, setIsMiniApp] = useState(false);
 
   const selectedSpell = spells.find(s => s.id === selectedSpellId) || spells[0];
   const selectedModel = AI_MODELS.find(m => m.id === selectedModelId) || AI_MODELS[0];
@@ -113,6 +119,14 @@ function App() {
       textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
     }
   }, [inputText]);
+
+  // Check for Mini App Mode via URL params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mode') === 'bale' || params.get('mode') === 'miniapp') {
+      setIsMiniApp(true);
+    }
+  }, []);
 
   // Persist spells & history
   useEffect(() => {
@@ -141,7 +155,9 @@ function App() {
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setShowInstallBtn(true);
+      if (!isMiniApp) { 
+        setShowInstallBtn(true);
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -149,15 +165,15 @@ function App() {
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
-  }, []);
+  }, [isMiniApp]);
 
-  // Check for API Key on mount
+  // Check for API Key on mount (AI Studio logic)
   useEffect(() => {
     const checkApiKey = async () => {
       if (window.aistudio && window.aistudio.hasSelectedApiKey) {
         try {
           const hasKey = await window.aistudio.hasSelectedApiKey();
-          setHasApiKey(hasKey);
+          setHasEnvKey(hasKey);
         } catch (e) {
           console.error("Error checking API key", e);
         }
@@ -176,48 +192,55 @@ function App() {
     setDeferredPrompt(null);
   };
 
-  const handleSelectApiKey = async () => {
-    if (window.aistudio && window.aistudio.openSelectKey) {
-      try {
-        await window.aistudio.openSelectKey();
-        setHasApiKey(true);
-      } catch (e) {
-        console.error("Error selecting API key", e);
-      }
+  const handleApiKeySave = (key: string) => {
+    setUserApiKey(key);
+    localStorage.setItem('user_gemini_api_key', key);
+    // If we have a key now, we assume we can proceed
+    setHasEnvKey(true);
+  };
+
+  const handleKeyButton = () => {
+    // If we are in AI Studio, prefer their selector, otherwise show our modal
+    if (window.aistudio && window.aistudio.openSelectKey && !isMiniApp) {
+      window.aistudio.openSelectKey().then(() => setHasEnvKey(true)).catch(console.error);
     } else {
-      alert("قابلیت انتخاب کلید API در این محیط در دسترس نیست. لطفاً متغیر محیطی API_KEY را به صورت دستی تنظیم کنید.");
+      setIsApiKeyModalOpen(true);
     }
   };
 
   const handleTransmute = async () => {
     if (!inputText.trim()) return;
 
-    if (!hasApiKey && window.aistudio) {
-      handleSelectApiKey();
-      return;
+    // Logic: If user has a manual key, use it.
+    // If not, and we are in AI Studio without a key selected, try to select.
+    // If simply no key anywhere, prompt the user.
+
+    if (!userApiKey && window.aistudio && !hasEnvKey && !isMiniApp) {
+       handleKeyButton();
+       return;
     }
 
     setIsLoading(true);
     setShowResult(true);
-    setOutputText(''); // Clear previous result
+    setOutputText(''); 
     
-    // Slight delay to allow UI to update
     setTimeout(async () => {
-        const result = await transformText(inputText, selectedSpell, customPrompt, selectedModelId);
+        // Pass userApiKey (if exists) as override
+        const result = await transformText(inputText, selectedSpell, customPrompt, selectedModelId, userApiKey);
         
-        // Check for API Key errors
-        if (result.includes("API key not valid") || result.includes("API_KEY_INVALID") || result.includes("Requested entity was not found") || result.includes("کلید API یافت نشد") || result.includes("API_KEY missing")) {
-           setHasApiKey(false);
-           setOutputText(result); // Show the specific error in output box
-           
-           // Automatically trigger selection if possible in aistudio
-           if (window.aistudio) {
-              handleSelectApiKey();
-           }
+        // Check specifically for missing key error from service
+        if (result.includes("API_KEY missing") || result.includes("کلید API یافت نشد")) {
+           // If error indicates missing key, open the modal for the user to fix it
+           setOutputText("لطفاً کلید API خود را وارد کنید.");
+           setIsApiKeyModalOpen(true);
+           setHasEnvKey(false);
+        } else if (result.includes("API Key") || result.includes("API_KEY")) {
+           // Other API key errors (invalid, etc)
+           setOutputText(result);
+           setIsApiKeyModalOpen(true); 
         } else {
            setOutputText(result);
            
-           // Add to history if successful
            if (!result.startsWith("Error:") && !result.startsWith("خطا:")) {
              const newHistoryItem: TransformationResult = {
                id: crypto.randomUUID(),
@@ -242,7 +265,6 @@ function App() {
     }
   };
 
-  // Specific Share Functions
   const handleSystemShare = async (text: string) => {
     if (navigator.share) {
       try {
@@ -336,7 +358,6 @@ function App() {
       }
     };
     reader.readAsText(file);
-    // Reset input value to allow uploading same file again
     e.target.value = '';
   };
 
@@ -403,33 +424,18 @@ function App() {
   // --- Search Highlighting Helper ---
   const renderHighlightedText = (text: string) => {
     if (!searchQuery) return text;
-    
-    // Create regex with capturing group to preserve delimiters in split
-    // Escape special regex characters in query
     const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(`(${escapedQuery})`, isCaseSensitive ? 'g' : 'gi');
-    
     const parts = text.split(regex);
-    
     return parts.map((part, index) => {
-      // Check for match
-      const isMatch = isCaseSensitive 
-        ? part === searchQuery 
-        : part.toLowerCase() === searchQuery.toLowerCase();
-
-      if (isMatch) {
-        return (
-          <mark key={index} className="bg-yellow-500/40 text-white rounded px-0.5 mx-0.5">
-            {part}
-          </mark>
-        );
-      }
+      const isMatch = isCaseSensitive ? part === searchQuery : part.toLowerCase() === searchQuery.toLowerCase();
+      if (isMatch) return <mark key={index} className="bg-yellow-500/40 text-white rounded px-0.5 mx-0.5">{part}</mark>;
       return part;
     });
   };
 
-  // API Key Missing Overlay (Only for AIStudio environment)
-  if (!hasApiKey && window.aistudio) {
+  // If missing key in AI Studio environment, show the forced overlay (unless user has manually set one)
+  if (!userApiKey && !hasEnvKey && window.aistudio && !isMiniApp) {
     return (
       <div className="min-h-screen font-sans bg-alchemy-dark flex items-center justify-center p-4">
         <div className="bg-alchemy-surface border border-slate-700 rounded-2xl p-8 max-w-md w-full text-center space-y-6 shadow-2xl">
@@ -443,7 +449,7 @@ function App() {
             </p>
           </div>
           <button 
-            onClick={handleSelectApiKey}
+            onClick={handleKeyButton}
             className="w-full bg-alchemy-primary hover:bg-indigo-600 text-white py-3 px-6 rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20"
           >
             انتخاب کلید API
@@ -457,31 +463,36 @@ function App() {
     <div className="min-h-screen font-sans selection:bg-alchemy-primary selection:text-white pb-20">
       
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-alchemy-dark/80 backdrop-blur-md border-b border-slate-800">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <header className={`sticky top-0 z-50 bg-alchemy-dark/80 backdrop-blur-md border-b border-slate-800 ${isMiniApp ? 'py-2' : 'py-3'}`}>
+        <div className={`mx-auto px-4 flex flex-col md:flex-row md:items-center justify-between gap-3 ${isMiniApp ? 'max-w-full' : 'max-w-5xl'}`}>
           
           {/* Logo & Model Selector */}
           <div className="flex items-center justify-between md:justify-start w-full md:w-auto gap-4">
              <div className="flex items-center gap-3">
                 <div className="p-2 bg-gradient-to-tr from-alchemy-primary to-purple-600 rounded-lg shadow-lg">
-                  <Sparkles className="text-white" size={24} />
+                  <Sparkles className="text-white" size={isMiniApp ? 20 : 24} />
                 </div>
-                <div>
-                  <h1 className="text-xl font-bold text-white tracking-tight">کیمیاگر متن</h1>
-                </div>
+                {!isMiniApp && (
+                  <div>
+                    <h1 className="text-xl font-bold text-white tracking-tight">کیمیاگر متن</h1>
+                  </div>
+                )}
              </div>
              
              {/* Model Dropdown */}
-             <div className="relative group">
-                <div className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg px-3 py-1.5 cursor-pointer transition-colors">
-                  <Bot size={16} className={selectedModel.isPro ? 'text-alchemy-accent' : 'text-slate-400'} />
-                  <div className="flex flex-col">
-                     <span className="text-xs text-slate-400">مدل هوش مصنوعی</span>
-                     <span className="text-sm font-medium text-white flex items-center gap-1">
-                        {selectedModel.name}
-                        <ChevronDown size={12} className="opacity-50" />
-                     </span>
+             <div className="relative group flex-1 md:flex-none">
+                <div className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg px-3 py-1.5 cursor-pointer transition-colors w-full md:w-auto justify-between md:justify-start">
+                  <div className="flex items-center gap-2">
+                    <Bot size={16} className={selectedModel.isPro ? 'text-alchemy-accent' : 'text-slate-400'} />
+                    <div className="flex flex-col">
+                       {!isMiniApp && <span className="text-xs text-slate-400">مدل هوش مصنوعی</span>}
+                       <span className="text-sm font-medium text-white flex items-center gap-1">
+                          {selectedModel.name}
+                          {isMiniApp && <span className="text-xs text-slate-500 opacity-70">({selectedModel.description.split(' ')[0]})</span>}
+                       </span>
+                    </div>
                   </div>
+                  <ChevronDown size={12} className="opacity-50" />
                   <select 
                     value={selectedModelId}
                     onChange={(e) => setSelectedModelId(e.target.value)}
@@ -499,21 +510,20 @@ function App() {
 
           {/* Actions */}
           <div className="flex gap-2 justify-end">
-            {/* Show Key Button if aistudio is available */}
-            {window.aistudio && (
-               <button 
-                 onClick={handleSelectApiKey}
-                 className="text-slate-400 hover:text-alchemy-accent transition-colors p-2 rounded-full hover:bg-slate-800"
-                 title="تغییر کلید API"
-               >
-                 <Key size={20} />
-               </button>
-            )}
+            
+            {/* Always show Key button now */}
+            <button 
+              onClick={handleKeyButton}
+              className={`text-slate-400 hover:text-alchemy-accent transition-colors p-2 rounded-full hover:bg-slate-800 ${userApiKey ? 'text-alchemy-accent' : ''}`}
+              title="تغییر کلید API"
+            >
+              <Key size={20} />
+            </button>
 
             <button 
               onClick={() => setIsGuideOpen(true)}
               className="text-slate-400 hover:text-white transition-colors p-2 rounded-full hover:bg-slate-800"
-              title="راهنمای نصب"
+              title="راهنمای نصب و ربات"
             >
               <HelpCircle size={20} />
             </button>
@@ -535,18 +545,20 @@ function App() {
             >
               <History size={20} />
             </button>
-            <button 
-              onClick={clearAll}
-              className="text-slate-400 hover:text-red-400 transition-colors p-2 rounded-full hover:bg-slate-800"
-              title="پاک کردن همه"
-            >
-              <Trash2 size={20} />
-            </button>
+            {!isMiniApp && (
+              <button 
+                onClick={clearAll}
+                className="text-slate-400 hover:text-red-400 transition-colors p-2 rounded-full hover:bg-slate-800"
+                title="پاک کردن همه"
+              >
+                <Trash2 size={20} />
+              </button>
+            )}
           </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+      <main className={`mx-auto px-4 ${isMiniApp ? 'py-4 max-w-full' : 'py-8 max-w-4xl'} space-y-6`}>
         
         {/* Input Section */}
         <section className="space-y-4">
@@ -556,7 +568,7 @@ function App() {
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder="متن خود را اینجا بنویسید، جایگذاری کنید، یا فایل متنی آپلود کنید..."
-              className="w-full bg-alchemy-surface border-2 border-slate-700 rounded-2xl p-6 pl-16 text-lg min-h-[160px] focus:outline-none focus:border-alchemy-primary focus:ring-4 focus:ring-alchemy-primary/10 transition-all resize-none shadow-xl"
+              className={`w-full bg-alchemy-surface border-2 border-slate-700 rounded-2xl p-6 pl-16 text-lg focus:outline-none focus:border-alchemy-primary focus:ring-4 focus:ring-alchemy-primary/10 transition-all resize-none shadow-xl ${isMiniApp ? 'min-h-[120px]' : 'min-h-[160px]'}`}
               dir="auto"
             />
             
@@ -590,6 +602,15 @@ function App() {
                  accept=".txt" 
                  className="hidden" 
                />
+               
+               {isMiniApp && inputText.length > 0 && (
+                 <button 
+                  onClick={() => setInputText('')}
+                  className="p-2 rounded-full shadow-lg backdrop-blur-sm bg-slate-700/50 text-red-400 hover:bg-red-500 hover:text-white transition-all duration-300"
+                 >
+                   <Trash2 size={20} />
+                 </button>
+               )}
             </div>
 
             <div className="absolute bottom-4 left-4 text-xs text-slate-500">
@@ -600,12 +621,14 @@ function App() {
 
         {/* Spells Grid */}
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 text-slate-300">
-              <Sparkles size={18} className="text-alchemy-accent" />
-              <h2 className="font-semibold">انتخاب ورد جادویی</h2>
+          {!isMiniApp && (
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-slate-300">
+                <Sparkles size={18} className="text-alchemy-accent" />
+                <h2 className="font-semibold">انتخاب ورد جادویی</h2>
+              </div>
             </div>
-          </div>
+          )}
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {spells.map((spell) => (
@@ -648,11 +671,11 @@ function App() {
         </section>
 
         {/* Action Button */}
-        <div className="flex justify-center pt-4">
+        <div className={`flex justify-center pt-2 ${isMiniApp ? 'sticky bottom-4 z-40' : ''}`}>
           <button
             onClick={handleTransmute}
             disabled={!inputText.trim() || isLoading}
-            className="group relative inline-flex items-center justify-center gap-3 bg-gradient-to-r from-alchemy-primary to-purple-600 text-white px-10 py-4 rounded-full text-lg font-bold shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            className={`group relative inline-flex items-center justify-center gap-3 bg-gradient-to-r from-alchemy-primary to-purple-600 text-white rounded-full font-bold shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${isMiniApp ? 'w-full py-3 text-base' : 'px-10 py-4 text-lg'}`}
           >
             {isLoading ? (
               <>
@@ -712,7 +735,7 @@ function App() {
                          </button>
                          
                          {isShareMenuOpen && (
-                           <div className="absolute left-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-50 animate-in fade-in slide-in-from-top-2 overflow-hidden">
+                           <div className="absolute left-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-50 animate-in fade-in slide-in-from-top-2 overflow-hidden left-0 origin-top-left md:right-0 md:left-auto md:origin-top-right">
                               <button 
                                 onClick={() => handleSystemShare(outputText)}
                                 className="w-full flex items-center gap-2 px-4 py-3 text-sm text-slate-300 hover:bg-slate-700 hover:text-white text-right transition-colors border-b border-slate-700/50"
@@ -807,6 +830,13 @@ function App() {
       <InstallGuideModal 
         isOpen={isGuideOpen}
         onClose={() => setIsGuideOpen(false)}
+      />
+
+      <ApiKeyModal
+        isOpen={isApiKeyModalOpen}
+        onClose={() => setIsApiKeyModalOpen(false)}
+        onSave={handleApiKeySave}
+        initialKey={userApiKey}
       />
     </div>
   );

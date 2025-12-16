@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { X, Monitor, Smartphone, Globe, Info, Code } from 'lucide-react';
+import { X, Monitor, Smartphone, Globe, Info, Code, MessageCircle } from 'lucide-react';
 
 interface InstallGuideModalProps {
   isOpen: boolean;
@@ -17,7 +17,7 @@ export const InstallGuideModal: React.FC<InstallGuideModalProps> = ({ isOpen, on
         <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-alchemy-dark/50">
           <div className="flex items-center gap-2">
             <Info className="text-alchemy-accent" size={24} />
-            <h2 className="text-lg font-bold text-white">راهنمای نصب برنامه</h2>
+            <h2 className="text-lg font-bold text-white">راهنمای نصب و ربات</h2>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
             <X size={20} />
@@ -26,6 +26,25 @@ export const InstallGuideModal: React.FC<InstallGuideModalProps> = ({ isOpen, on
 
         <div className="p-6 overflow-y-auto space-y-6 dir-rtl" dir="rtl">
           
+          {/* Bale Bot Section */}
+          <div className="space-y-3 bg-indigo-900/20 p-4 rounded-xl border border-indigo-500/30">
+            <div className="flex items-center gap-2 text-indigo-400">
+              <MessageCircle size={24} />
+              <h3 className="font-bold text-lg">تبدیل به ربات بله (Bale Bot)</h3>
+            </div>
+            <div className="space-y-2 text-sm text-slate-300 leading-relaxed">
+              <p>شما می‌توانید این برنامه را به عنوان یک <b>Mini App</b> (وب‌اپلیکیشن) داخل ربات بله خود قرار دهید:</p>
+              <ol className="list-decimal list-inside space-y-2 marker:text-indigo-500 pr-2">
+                <li>در پیام‌رسان بله به بازوی <code>@BotFather</code> بروید.</li>
+                <li>یک ربات جدید بسازید یا ربات فعلی را انتخاب کنید.</li>
+                <li>به بخش <b>Bot Settings</b> و سپس <b>Menu Button</b> بروید.</li>
+                <li>گزینه <b>Configure Menu Button</b> را بزنید.</li>
+                <li>آدرس (URL) این برنامه را وارد کنید و در انتهای آن عبارت <code>?mode=bale</code> را اضافه کنید.</li>
+                <li className="text-xs text-slate-500 font-mono mt-1 bg-slate-900/50 p-2 rounded">مثال: https://your-site.com/?mode=bale</li>
+              </ol>
+            </div>
+          </div>
+
           {/* Windows Section */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-alchemy-primary">

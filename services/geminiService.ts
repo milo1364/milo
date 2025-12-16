@@ -14,16 +14,18 @@ export const transformText = async (
   text: string, 
   spell: Spell, 
   customPrompt?: string,
-  modelId: string = 'gemini'
+  modelId: string = 'gemini',
+  apiKeyOverride?: string
 ): Promise<string> => {
   try {
-    // Check for API Key explicitly before initializing to provide a better error message
-    const apiKey = process.env.API_KEY;
+    // Priority: User Override > Environment Variable
+    const apiKey = apiKeyOverride || process.env.API_KEY;
+    
     if (!apiKey) {
-      return "خطا: کلید API یافت نشد (API_KEY missing).\n\nاگر برنامه را روی سیستم خود اجرا می‌کنید، لطفاً فایل .env را بررسی کنید.\nاگر در محیط آنلاین هستید، لطفاً صفحه را رفرش کرده و مجدداً کلید را انتخاب کنید.";
+      return "خطا: کلید API یافت نشد (API_KEY missing).\n\nلطفاً روی دکمه کلید (Key) در بالای صفحه کلیک کرده و کلید خود را وارد کنید.";
     }
 
-    // Initialize inside the function to ensure process.env.API_KEY is available
+    // Initialize inside the function using the resolved key
     const ai = new GoogleGenAI({ apiKey });
 
     // Find the selected model config to get the actual modelName
@@ -52,7 +54,6 @@ export const transformText = async (
 
     if (modelId === 'deepseek') {
       // DeepSeek Style -> Uses Thinking Model via Gemini 2.5
-      // 2048 is a reasonable budget for standard reasoning tasks
       config.thinkingConfig = { thinkingBudget: 2048 };
     } else if (modelId === 'copilot') {
       // Copilot Style -> More Creative/Conversational
@@ -77,7 +78,7 @@ export const transformText = async (
     if (error instanceof Error) {
         // Handle specific missing key error from SDK for user friendliness
         if (error.message.includes("API Key") || error.message.includes("API_KEY")) {
-             return "خطا: کلید API معتبر نیست یا تنظیم نشده است.";
+             return "خطا: کلید API معتبر نیست یا تنظیم نشده است. لطفاً کلید خود را بررسی کنید.";
         }
         return `Error: ${error.message}`;
     }
