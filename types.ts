@@ -57,3 +57,11 @@ export const AI_MODELS: AIModelConfig[] = [
     isPro: true
   }
 ];
+
+// Global type augmentations
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}

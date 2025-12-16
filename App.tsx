@@ -170,9 +170,10 @@ function App() {
   // Check for API Key on mount (AI Studio logic)
   useEffect(() => {
     const checkApiKey = async () => {
-      if (window.aistudio && window.aistudio.hasSelectedApiKey) {
+      const win = window as any;
+      if (win.aistudio && win.aistudio.hasSelectedApiKey) {
         try {
-          const hasKey = await window.aistudio.hasSelectedApiKey();
+          const hasKey = await win.aistudio.hasSelectedApiKey();
           setHasEnvKey(hasKey);
         } catch (e) {
           console.error("Error checking API key", e);
@@ -200,9 +201,10 @@ function App() {
   };
 
   const handleKeyButton = () => {
+    const win = window as any;
     // If we are in AI Studio, prefer their selector, otherwise show our modal
-    if (window.aistudio && window.aistudio.openSelectKey && !isMiniApp) {
-      window.aistudio.openSelectKey().then(() => setHasEnvKey(true)).catch(console.error);
+    if (win.aistudio && win.aistudio.openSelectKey && !isMiniApp) {
+      win.aistudio.openSelectKey().then(() => setHasEnvKey(true)).catch(console.error);
     } else {
       setIsApiKeyModalOpen(true);
     }
@@ -215,7 +217,8 @@ function App() {
     // If not, and we are in AI Studio without a key selected, try to select.
     // If simply no key anywhere, prompt the user.
 
-    if (!userApiKey && window.aistudio && !hasEnvKey && !isMiniApp) {
+    const win = window as any;
+    if (!userApiKey && win.aistudio && !hasEnvKey && !isMiniApp) {
        handleKeyButton();
        return;
     }
@@ -435,7 +438,8 @@ function App() {
   };
 
   // If missing key in AI Studio environment, show the forced overlay (unless user has manually set one)
-  if (!userApiKey && !hasEnvKey && window.aistudio && !isMiniApp) {
+  const win = window as any;
+  if (!userApiKey && !hasEnvKey && win.aistudio && !isMiniApp) {
     return (
       <div className="min-h-screen font-sans bg-alchemy-dark flex items-center justify-center p-4">
         <div className="bg-alchemy-surface border border-slate-700 rounded-2xl p-8 max-w-md w-full text-center space-y-6 shadow-2xl">
